@@ -10,18 +10,35 @@ public class CustomerSimulationService {
     static Random random = new Random();
     static Comparator<Customer> customerComparator = Comparator.comparingDouble(customer -> customer.arrivalTime);
     static Queue<Customer> customerQueue = new PriorityQueue<>(customerComparator);
-    static double clockTime = 0.0;
-    static int numCustomers = 0;
-    static int numCustomersInQueue = 0;
-    static double totalWaitingTime = 0.0;
-    static double totalServiceTime = 0.0;
-    static double idleTime = 0.0;
+    static double clockTime;
+    static int numCustomers;
+    static int numCustomersInQueue;
+    static double totalWaitingTime;
+    static double totalServiceTime;
+    static double idleTime;
+    static double previousIAT;
 
     public List<String> simulateCustomerArrival() {
+        resetSimulation(); // Reset simulation parameters before starting
+        return runSimulation(); // Start the simulation
+    }
+
+    public void resetSimulation() {
+        clockTime = 0.0;
+        numCustomers = 0;
+        numCustomersInQueue = 0;
+        totalWaitingTime = 0.0;
+        totalServiceTime = 0.0;
+        idleTime = 0.0;
+        previousIAT = 0.0;
+        customerQueue.clear();
+    }
+
+    public List<String> runSimulation() {
         List<String> customerDataList = new ArrayList<>();
         while (numCustomers < 10) { // Simulate 10 customers
-            double nextArrivalTime = clockTime + getRandomExponential(1.93); // 1.93 is the mean IAT
-            double nextServiceTime = getRandomExponential(1.24); // Replace 1.24 with the mean service time
+            double nextIAT = getRandomExponential(1.93); // Generate random inter-arrival time
+            double nextArrivalTime = clockTime + nextIAT; // Add it to the previous arrival time
 
             idleTime += Math.max(0.0, nextArrivalTime - clockTime);
 
@@ -33,6 +50,7 @@ public class CustomerSimulationService {
 
             Customer newCustomer = new Customer();
             newCustomer.arrivalTime = clockTime;
+            double nextServiceTime = getRandomExponential(1.24); // Replace 1.24 with the mean service time
             newCustomer.serviceTime = nextServiceTime;
             customerQueue.add(newCustomer);
             numCustomers++;
@@ -41,6 +59,8 @@ public class CustomerSimulationService {
             if (customerData != null) {
                 customerDataList.add(customerData);
             }
+
+            previousIAT = nextIAT; // Update the previous inter-arrival time
         }
         return customerDataList;
     }
@@ -57,29 +77,64 @@ public class CustomerSimulationService {
             totalWaitingTime += currentCustomer.waitingTime;
             clockTime = serviceCompletionTime;
 
-            return printCustomerData(currentCustomer);
+            return printCustomerData(Arrays.asList(currentCustomer)); // Return individual customer data
         }
         return null;
     }
 
-    public String printCustomerData(Customer customer) {
-        double idleTimePerCustomer = idleTime / numCustomers;
-        int numCustomersInSystem = numCustomers - customerQueue.size();
-        int numCustomersInQueue = customerQueue.size();
-        double waitingTimeInQueue = totalWaitingTime / numCustomersInSystem;
-        double waitingTimeInSystem = totalWaitingTime / numCustomers;
+    public String printCustomerData(List<Customer> customers) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Customer customer : customers) {
+            double idleTimePerCustomer = idleTime / numCustomers;
+            int numCustomersInSystem = numCustomers - customerQueue.size();
+            int numCustomersInQueue = customerQueue.size();
+            double waitingTimeInQueue = totalWaitingTime / numCustomersInSystem;
+            double waitingTimeInSystem = totalWaitingTime / numCustomers;
 
-        return "Customer: " + customer.customerNumber +
-                ", IAT: " + (customer.arrivalTime - clockTime) +
-                ", Clock Time: " + clockTime +
-                ", Service Time: " + customer.serviceTime +
-                ", Service Start Time: " + customer.serviceStartTime +
-                ", Service End Time: " + customer.serviceEndTime +
-                ", Number in System: " + numCustomersInSystem +
-                ", Number in Queue: " + numCustomersInQueue +
-                ", Waiting Time in Queue: " + customer.waitingTime +
-                ", Waiting Time in System: " + waitingTimeInSystem +
-                ", Idle Time: " + idleTimePerCustomer;
+            stringBuilder.append("Customer: ").append(customer.customerNumber)
+                    .append(", IAT: ").append(customer.arrivalTime - previousIAT)
+                    .append(", Clock Time: ").append(clockTime)
+                    .append(", Service Time: ").append(customer.serviceTime)
+                    .append(", Service Start Time: ").append(customer.serviceStartTime)
+                    .append(", Service End Time: ").append(customer.serviceEndTime)
+                    .append(", Number in System: ").append(numCustomersInSystem)
+                    .append(", Number in Queue: ").append(numCustomersInQueue)
+                    .append(", Waiting Time in Queue: ").append(customer.waitingTime)
+                    .append(", Waiting Time in System: ").append(waitingTimeInSystem)
+                    .append(", Idle Time: ").append(idleTimePerCustomer)
+                    .append("\n");
+        }
+
+        // Calculate total statistics
+        double totalServiceTime = 0.0;
+        int totalCustomersInSystem = 0;
+        int totalCustomersInQueue = 0;
+        double totalWaitingTimeInQueue = 0.0;
+        double totalWaitingTimeInSystem = 0.0;
+        double totalIdleTime = 0.0;
+
+        for (Customer customer : customers) {
+            totalServiceTime += customer.serviceTime;
+            totalCustomersInSystem++;
+            if (customer.waitingTime > 0) {
+                totalCustomersInQueue++;
+                totalWaitingTimeInQueue += customer.waitingTime;
+            }
+            totalWaitingTimeInSystem += customer.waitingTime;
+            totalIdleTime += idleTime / numCustomers;
+        }
+
+        // Append total statistics
+        stringBuilder.append("Total: ")
+                .append("Service Time: ").append(totalServiceTime).append(", ")
+                .append("Number in System: ").append(totalCustomersInSystem).append(", ")
+                .append("Number in Queue: ").append(totalCustomersInQueue).append(", ")
+                .append("Waiting Time in Queue: ").append(totalWaitingTimeInQueue).append(", ")
+                .append("Waiting Time in System: ").append(totalWaitingTimeInSystem).append(", ")
+                .append("Idle Time: ").append(totalIdleTime)
+                .append("\n");
+
+        return stringBuilder.toString();
     }
 
     public double getRandomExponential(double mean) {
