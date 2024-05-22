@@ -8,8 +8,7 @@ import java.util.*;
 @Service
 public class CustomerSimulationService {
     static Random random = new Random();
-    static Comparator<Customer> customerComparator = Comparator.comparingDouble(customer -> customer.arrivalTime);
-    static Queue<Customer> customerQueue = new PriorityQueue<>(customerComparator);
+    static Queue<Customer> customerQueue = new LinkedList<>(); // Changed to LinkedList for FIFO
     static double clockTime;
     static int numCustomers;
     static int numCustomersInQueue;
@@ -18,9 +17,9 @@ public class CustomerSimulationService {
     static double idleTime;
     static double previousIAT;
 
-    public List<String> simulateCustomerArrival() {
+    public List<String> simulateCustomerArrival(int numCustomersInSystem) {
         resetSimulation(); // Reset simulation parameters before starting
-        return runSimulation(); // Start the simulation
+        return runSimulation(numCustomersInSystem); // Start the simulation with specified number of customers
     }
 
     public void resetSimulation() {
@@ -34,9 +33,9 @@ public class CustomerSimulationService {
         customerQueue.clear();
     }
 
-    public List<String> runSimulation() {
+    public List<String> runSimulation(int numCustomersInSystem) {
         List<String> customerDataList = new ArrayList<>();
-        while (numCustomers < 10) { // Simulate 10 customers
+        while (numCustomers < numCustomersInSystem) { // Simulate until the specified number of customers
             double nextIAT = getRandomExponential(1.93); // Generate random inter-arrival time
             double nextArrivalTime = clockTime + nextIAT; // Add it to the previous arrival time
 
@@ -56,7 +55,7 @@ public class CustomerSimulationService {
             numCustomers++;
 
             String customerData = processCustomer(newCustomer);
-            if (customerData != null) {
+            if (customerData!= null) {
                 customerDataList.add(customerData);
             }
 
@@ -77,7 +76,7 @@ public class CustomerSimulationService {
             totalWaitingTime += currentCustomer.waitingTime;
             clockTime = serviceCompletionTime;
 
-            return printCustomerData(Arrays.asList(currentCustomer)); // Return individual customer data
+            return printCustomerData(Collections.singletonList(currentCustomer)); // Return individual customer data
         }
         return null;
     }
@@ -125,7 +124,8 @@ public class CustomerSimulationService {
         }
 
         // Append total statistics
-        stringBuilder.append("Total: ")
+        stringBuilder.append("------------------------\n")
+                .append("Total: ")
                 .append("Service Time: ").append(totalServiceTime).append(", ")
                 .append("Number in System: ").append(totalCustomersInSystem).append(", ")
                 .append("Number in Queue: ").append(totalCustomersInQueue).append(", ")

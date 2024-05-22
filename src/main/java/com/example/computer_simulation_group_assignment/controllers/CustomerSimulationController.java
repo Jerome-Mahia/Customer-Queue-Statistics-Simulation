@@ -17,8 +17,8 @@ import static java.lang.Integer.parseInt;
 public class CustomerSimulationController {
     private final CustomerSimulationService customerSimulationService;
 
-    @GetMapping
+    @GetMapping("/run")
     public List<String> simulateQueueStatistics() {
-        return customerSimulationService.simulateCustomerArrival();
+        return customerSimulationService.simulateCustomerArrival(10);
     }
 }
