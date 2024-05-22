@@ -83,12 +83,17 @@ public class CustomerSimulationService {
 
     public String printCustomerData(List<Customer> customers) {
         StringBuilder stringBuilder = new StringBuilder();
+        int numCustomersThatHadToWait = 0;
+
         for (Customer customer : customers) {
             double idleTimePerCustomer = idleTime / numCustomers;
             int numCustomersInSystem = numCustomers - customerQueue.size();
             int numCustomersInQueue = customerQueue.size();
             double waitingTimeInQueue = totalWaitingTime / numCustomersInSystem;
             double waitingTimeInSystem = totalWaitingTime / numCustomers;
+            if (customer.waitingTime > 0) {
+                numCustomersThatHadToWait++;
+            }
 
             stringBuilder.append("Customer: ").append(customer.customerNumber)
                     .append(", IAT: ").append(customer.arrivalTime - previousIAT)
@@ -112,6 +117,12 @@ public class CustomerSimulationService {
         double totalWaitingTimeInSystem = 0.0;
         double totalIdleTime = 0.0;
 
+        double averageServiceTime = totalServiceTime / numCustomers;
+        double averageWaitingTimeInQueue = totalWaitingTimeInQueue / numCustomers;
+        double averageWaitingTimeInSystem = totalWaitingTimeInSystem / numCustomers;
+        double averageIdleTime = totalIdleTime / numCustomers;
+        double probabilityOfWaiting = (double) numCustomersThatHadToWait / numCustomers;
+
         for (Customer customer : customers) {
             totalServiceTime += customer.serviceTime;
             totalCustomersInSystem++;
@@ -132,6 +143,11 @@ public class CustomerSimulationService {
                 .append("Waiting Time in Queue: ").append(totalWaitingTimeInQueue).append(", ")
                 .append("Waiting Time in System: ").append(totalWaitingTimeInSystem).append(", ")
                 .append("Idle Time: ").append(totalIdleTime)
+                .append("Average Service Time: ").append(averageServiceTime).append(", ")
+                .append("Average Waiting Time in Queue: ").append(averageWaitingTimeInQueue).append(", ")
+                .append("Average Waiting Time in System: ").append(averageWaitingTimeInSystem).append(", ")
+                .append("Average Idle Time: ").append(averageIdleTime).append(", ")
+                .append("Probability of Waiting: ").append(probabilityOfWaiting)
                 .append("\n");
 
         return stringBuilder.toString();
